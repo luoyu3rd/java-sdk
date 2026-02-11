@@ -69,7 +69,7 @@
 
         <!-- Test dependency versions -->
         <junit.version>5.11.0</junit.version>
-        <assertj.version>3.24.2</assertj.version>
+        <assertj.version>3.27.7</assertj.version>
         <mockito.version>5.8.0</mockito.version>
         <logback.version>1.5.12</logback.version>
 
