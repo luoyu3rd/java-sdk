@@ -68,21 +68,30 @@ import com.agentclientprotocol.sdk.client.transport.*;
 import com.agentclientprotocol.sdk.spec.AcpSchema.*;
 import java.util.List;
 
-// Connect to an agent via stdio
+// Launch Gemini CLI as an ACP agent subprocess
 var params = AgentParameters.builder("gemini").arg("--experimental-acp").build();
 var transport = new StdioAcpClientTransport(params);
 
-// Create client
-AcpSyncClient client = AcpClient.sync(transport).build();
+// Create client — sessionUpdateConsumer prints the agent's streamed response
+AcpSyncClient client = AcpClient.sync(transport)
+    .sessionUpdateConsumer(notification -> {
+        if (notification.update() instanceof AgentMessageChunk msg) {
+            System.out.print(((TextContent) msg.content()).text());
+        }
+    })
+    .build();
 
-// Initialize, create session, send prompt
+// Three-phase lifecycle: initialize → session → prompt
 client.initialize();
 var session = client.newSession(new NewSessionRequest("/workspace", List.of()));
 var response = client.prompt(new PromptRequest(
     session.sessionId(),
-    List.of(new TextContent("Hello, world!"))
+    List.of(new TextContent("What is 2+2? Reply with just the number."))
 ));
+// Output: 4
+// Stop reason: END_TURN
 
+System.out.println("\nStop reason: " + response.stopReason());
 client.close();
 ```
 
@@ -130,30 +139,22 @@ The builder API with blocking handlers and plain return values ([tutorial](https
 import com.agentclientprotocol.sdk.agent.*;
 import com.agentclientprotocol.sdk.agent.transport.*;
 import com.agentclientprotocol.sdk.spec.AcpSchema.*;
-import java.util.List;
 import java.util.UUID;
 
-// Create stdio transport
 var transport = new StdioAcpAgentTransport();
 
-// Build sync agent - handlers use plain return values (no Mono!)
+// Sync agent — plain return values, no Mono
 AcpSyncAgent agent = AcpAgent.sync(transport)
-    .initializeHandler(req ->
-        new InitializeResponse(1, new AgentCapabilities(), List.of()))
+    .initializeHandler(req -> InitializeResponse.ok())
     .newSessionHandler(req ->
         new NewSessionResponse(UUID.randomUUID().toString(), null, null))
     .promptHandler((req, context) -> {
-        // Send updates using blocking void method
-        context.sendUpdate(req.sessionId(),
-            new AgentMessageChunk("agent_message_chunk",
-                new TextContent("Hello from the agent!")));
-        // Return response directly (no Mono!)
-        return new PromptResponse(StopReason.END_TURN);
+        context.sendMessage("Hello from the agent!");  // blocking void method
+        return PromptResponse.endTurn();
     })
     .build();
 
-// Run agent (blocks until client disconnects)
-agent.run();
+agent.run();  // Blocks until client disconnects
 ```
 
 ### 4. Hello World Agent (Async)
@@ -165,24 +166,20 @@ import com.agentclientprotocol.sdk.agent.*;
 import com.agentclientprotocol.sdk.agent.transport.*;
 import com.agentclientprotocol.sdk.spec.AcpSchema.*;
 import reactor.core.publisher.Mono;
-import java.util.List;
 import java.util.UUID;
 
 var transport = new StdioAcpAgentTransport();
 
+// Async agent — handlers return Mono
 AcpAsyncAgent agent = AcpAgent.async(transport)
-    .initializeHandler(req -> Mono.just(
-        new InitializeResponse(1, new AgentCapabilities(), List.of())))
+    .initializeHandler(req -> Mono.just(InitializeResponse.ok()))
     .newSessionHandler(req -> Mono.just(
         new NewSessionResponse(UUID.randomUUID().toString(), null, null)))
     .promptHandler((req, context) ->
-        context.sendUpdate(req.sessionId(),
-                new AgentMessageChunk("agent_message_chunk",
-                    new TextContent("Hello from the agent!")))
-            .then(Mono.just(new PromptResponse(StopReason.END_TURN))))
+        context.sendMessage("Hello from the agent!")
+            .then(Mono.just(PromptResponse.endTurn())))
     .build();
 
-// Start and await termination
 agent.start().then(agent.awaitTermination()).block();
 ```
 
@@ -198,8 +195,7 @@ Send real-time updates to the client during prompt processing (tutorial: [client
 ```java
 @Prompt
 PromptResponse prompt(PromptRequest req, SyncPromptContext ctx) {
-    ctx.sendUpdate(req.sessionId(),
-        new AgentThoughtChunk("agent_thought_chunk", new TextContent("Thinking...")));
+    ctx.sendThought("Thinking...");
     ctx.sendMessage("Here's my response.");
     return PromptResponse.endTurn();
 }
@@ -208,27 +204,18 @@ PromptResponse prompt(PromptRequest req, SyncPromptContext ctx) {
 **Sync:**
 ```java
 .promptHandler((req, context) -> {
-    context.sendUpdate(req.sessionId(),
-        new AgentThoughtChunk("agent_thought_chunk",
-            new TextContent("Thinking...")));
-    context.sendUpdate(req.sessionId(),
-        new AgentMessageChunk("agent_message_chunk",
-            new TextContent("Here's my response.")));
-    return new PromptResponse(StopReason.END_TURN);
+    context.sendThought("Thinking...");
+    context.sendMessage("Here's my response.");
+    return PromptResponse.endTurn();
 })
 ```
 
 **Async:**
 ```java
-.promptHandler((request, context) -> {
-    return context.sendUpdate(request.sessionId(),
-            new AgentThoughtChunk("agent_thought_chunk",
-                new TextContent("Thinking...")))
-        .then(context.sendUpdate(request.sessionId(),
-            new AgentMessageChunk("agent_message_chunk",
-                new TextContent("Here's my response."))))
-        .then(Mono.just(new PromptResponse(StopReason.END_TURN)));
-})
+.promptHandler((req, context) ->
+    context.sendThought("Thinking...")
+        .then(context.sendMessage("Here's my response."))
+        .then(Mono.just(PromptResponse.endTurn())))
 ```
 
 **Client - receiving updates:**
@@ -251,16 +238,10 @@ Agents can request file operations from the client ([tutorial](https://github.co
 ```java
 AcpSyncAgent agent = AcpAgent.sync(transport)
     .promptHandler((req, context) -> {
-        // Read a file from the client's filesystem
-        var fileResponse = context.readTextFile(
-            new ReadTextFileRequest(req.sessionId(), "pom.xml", null, 10));
-        String content = fileResponse.content();
-
-        // Write a file
-        context.writeTextFile(
-            new WriteTextFileRequest(req.sessionId(), "output.txt", "Hello!"));
-
-        return new PromptResponse(StopReason.END_TURN);
+        // Convenience methods on SyncPromptContext
+        String content = context.readFile("pom.xml");
+        context.writeFile("output.txt", "Hello!");
+        return PromptResponse.endTurn();
     })
     .build();
 
