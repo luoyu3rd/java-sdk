@@ -1,6 +1,6 @@
 # ACP Java SDK
 
-> **Documentation**: https://springaicommunity.mintlify.app/acp-java-sdk
+> **Documentation**: https://springaicommunity.mintlify.app/acp-java-sdk | [API Reference](https://springaicommunity.mintlify.app/acp-java-sdk/reference/java) | [Tutorial](https://springaicommunity.mintlify.app/acp-java-sdk/tutorial)
 
 Pure Java implementation of the [Agent Client Protocol (ACP)](https://agentclientprotocol.com/) specification for building both clients and agents.
 
@@ -432,6 +432,16 @@ MockAcpClient mockClient = MockAcpClient.builder(pair.clientTransport())
 ## Tutorial
 
 For a hands-on, progressive introduction to the SDK, see the **[ACP Java Tutorial](https://github.com/markpollack/acp-java-tutorial)** -- 30 modules covering client basics, agent development, streaming, testing, and IDE integration.
+
+## ACP Ecosystem
+
+This SDK is part of the [Agent Client Protocol](https://agentclientprotocol.com/) ecosystem.
+
+**Other ACP SDKs:** [Kotlin](https://github.com/agentclientprotocol/kotlin-sdk) | [Python](https://github.com/agentclientprotocol/python-sdk) | [TypeScript](https://github.com/agentclientprotocol/typescript-sdk) | [Rust](https://github.com/agentclientprotocol/rust-sdk)
+
+**Editor ACP docs:** [Zed](https://zed.dev/docs/ai/external-agents) | [JetBrains](https://www.jetbrains.com/help/ai-assistant/acp.html) | [VS Code](https://github.com/formulahendry/vscode-acp)
+
+**ACP directories:** [Agents](https://agentclientprotocol.com/overview/agents) | [Clients](https://agentclientprotocol.com/overview/clients) | [Protocol spec](https://agentclientprotocol.com/protocol/overview)
 
 ## Roadmap
 
