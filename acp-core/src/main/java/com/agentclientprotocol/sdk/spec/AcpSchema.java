@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -690,7 +691,7 @@ public final class AcpSchema {
 	/**
 	 * Content block - base type for all content
 	 */
-	@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+	@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type", visible = true)
 	@JsonSubTypes({ @JsonSubTypes.Type(value = TextContent.class, name = "text"),
 			@JsonSubTypes.Type(value = ImageContent.class, name = "image"),
 			@JsonSubTypes.Type(value = AudioContent.class, name = "audio"),
@@ -801,7 +802,7 @@ public final class AcpSchema {
 	/**
 	 * Session update - different types of updates
 	 */
-	@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "sessionUpdate", visible = true)
+	@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "sessionUpdate", visible = true)
 	@JsonSubTypes({ @JsonSubTypes.Type(value = UserMessageChunk.class, name = "user_message_chunk"),
 			@JsonSubTypes.Type(value = AgentMessageChunk.class, name = "agent_message_chunk"),
 			@JsonSubTypes.Type(value = AgentThoughtChunk.class, name = "agent_thought_chunk"),

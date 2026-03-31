@@ -4,7 +4,7 @@
   "params": {
     "sessionId": "session-abc123",
     "update": {
-      "sessionUpdate": "agentMessage",
+      "sessionUpdate": "agent_message_chunk",
       "content": {
         "type": "text",
         "text": "I'll help you fix the failing test."

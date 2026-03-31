@@ -83,7 +83,7 @@ class GoldenFileTest {
 		assertThat(node.get("method").asText()).isEqualTo("session/update");
 		assertThat(node.has("id")).isFalse(); // Notifications don't have id
 		assertThat(node.get("params").get("sessionId").asText()).isEqualTo("session-abc123");
-		assertThat(node.get("params").get("update").get("sessionUpdate").asText()).isEqualTo("agentMessage");
+		assertThat(node.get("params").get("update").get("sessionUpdate").asText()).isEqualTo("agent_message_chunk");
 	}
 
 	@Test
